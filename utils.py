@@ -1,32 +1,37 @@
+from typing import TypedDict, List
 import os
+import shutil
+import pyodbc
 import argparse
+from pyodbc import Row
 
 
-def getEnv() -> dict[str:str]:
+class Env(TypedDict):
+    sv: str
+    db: str
+    u: str
+    pw: str
+
+
+class Args(TypedDict):
+    table: str
+    order_by: str
+    sort: str
+    number: int
+    sep: str
+    size: int
+
+
+def getEnv() -> Env:
     sv = os.getenv("DB_SERVER")
     db = os.getenv("DB_NAME")
     u = os.getenv("DB_USER")
     pw = os.getenv("DB_PASS")
 
-    if sv is None:
-        raise ValueError("You need to specify a server name.")
-    if db is None:
-        raise ValueError("You need to specify a datbase name.")
-    if u is None:
-        raise ValueError("You need to specify a username.")
-    if pw is None:
-        raise ValueError("You need to specify a password.")
-
-    print("-------- env variables ----------")
-    print(f"Server: {sv}")
-    print(f"Database: {db}")
-    print(f"Username: {u}")
-    print(f"Password: {pw}")
-
     return {"sv": sv, "db": db, "u": u, "pw": pw}
 
 
-def getArgs():
+def getArgs() -> Args:
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--table", type=str, help="ระบุชื่อตาราง")
     parser.add_argument("-o", "--order_by", type=str, help="ตัวเลือกสำหรับจัดระเบียบ")
@@ -37,13 +42,51 @@ def getArgs():
         help="ตัวเลือกสำหรับเรียง (ค่าเริ่มต้น asc)",
         default="asc",
     )
-    parser.add_argument("-n", "--number", type=str, help="ตัวเลือกสำหรับระบุจำนวนแถว")
+    parser.add_argument(
+        "-n",
+        "--number",
+        type=int,
+        default=10000,
+        help="ตัวเลือกสำหรับระบุจำนวนแถวทั้งหมดที่ต้องการ",
+    )
+    parser.add_argument("--sep", type=str, default="¦", help="ตัวเลือกสำหรับตัวแบ่งแถว")
+    parser.add_argument(
+        "--size", type=int, default=10000, help="ตัวเลือกสำหรับจำนวนแถวต่อหน้า"
+    )
+
     args = parser.parse_args()
 
-    if args.table is None:
-        raise ValueError("You need to specify a table.")
-
-    print("-------- args ----------")
-    print(args.__dict__)
-
     return args.__dict__
+
+
+def connectDB():
+    env = getEnv()
+    cnxn_str = f"""
+        DRIVER={{ODBC Driver 17 for SQL Server}};
+        SERVER={env['sv']};
+        DATABASE={env["db"]};
+        UID={env["u"]};
+        PWD={env["pw"]};
+    """
+    cnxn = pyodbc.connect(cnxn_str)
+    cursor = cnxn.cursor()
+    print("Database connected.")
+    return cnxn, cursor
+
+
+def createCSVDir():
+    dir = "csv"
+    if os.path.exists(dir):
+        shutil.rmtree(dir)
+    os.makedirs(dir, exist_ok=True)
+    return dir
+
+
+def cleanRows(rows: List[Row]):
+    cleaned_rows = []
+    for row in rows:
+        cleaned_row = list(row)
+        if cleaned_row[1] is not None:
+            cleaned_row[1] = cleaned_row[1].replace('\n', '').replace('\r', '')
+        cleaned_rows.append(cleaned_row)
+    return cleaned_rows

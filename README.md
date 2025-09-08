@@ -8,4 +8,7 @@ set DB_USER=sa
 set DB_PASS=123qwe
 
 Running a Python script
-py export.py --table=D_CF_HS_MAPPING --order_by=hs_no
+py export.py --table=D_CF_HS_MAPPING --order_by=hs_no --sort=desc
+or 
+export.exe --table=D_CF_HS_MAPPING --order_by=hs_no --sort=desc
+
