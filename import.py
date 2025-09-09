@@ -18,9 +18,12 @@ if __name__ == "__main__":
                     reader = csv.reader(f, delimiter="¦")
                     header = next(reader)
                     for row in reader:
-                        insert_query = f"INSERT INTO {table_name} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                        cursor.execute(insert_query, *row)
-
+                        try:
+                            insert_query = f"INSERT INTO {table_name} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            cursor.execute(insert_query, *row)
+                            print(f'inserted in to {table_name}')
+                        except pyodbc.Error as e:
+                            print(e)
         cnxn.commit()
         cursor.close()
     except Exception as e:
