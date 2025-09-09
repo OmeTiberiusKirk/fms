@@ -4,9 +4,9 @@ import utils
 
 if __name__ == "__main__":
     try:
-        dir = utils.createCSVDir()
         env = utils.getEnv()
         args = utils.getArgs()
+        dir = utils.createCSVDir()
 
         cnxn, cursor = utils.connectDB()
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
         i = 0
         while totalRows > 0:
-            output_csv_file = f"{args['table']}{"" if i == 0 else "-" + str(i)}.csv"
+            output_csv_file = f"{args['table']}-{i+1}.csv"
             # Fetch data from the specified table
             query = f"""
               SELECT * FROM {args['table']} 
@@ -25,21 +25,30 @@ if __name__ == "__main__":
               OFFSET {i * args['size']} ROWS
               FETCH NEXT {args['size'] if args['size'] < totalRows else totalRows} ROWS ONLY
           	"""
-            print("--------- query ---------")
             cursor.execute(query)
-            # Fetch all rows
-            rows = cursor.fetchall()
-            rows = utils.cleanRows(rows)
+
+            rows = []
+            for row in cursor:
+                # Clean newline characters in Python
+                cleaned_row = [
+                    (
+                        str(item).replace("\n", "").replace("\r", "")
+                        if isinstance(item, str)
+                        else item
+                    )
+                    for item in row
+                ]
+                rows.append(cleaned_row)
+
             # Get column names for the DataFrame
             columns = [column[0] for column in cursor.description]
             # Create a Pandas DataFrame
             df = pd.DataFrame.from_records(rows, columns=columns)
             # Export DataFrame to CSV
-            df.to_csv(
-                f"{dir}/{output_csv_file}", index=False, sep=args["sep"]
-            )
+            df.to_csv(f"{dir}/{output_csv_file}", index=False, sep=args["sep"])
+            print("--------- csv created successfully ---------")
 
-            totalRows = totalRows - args['size']
+            totalRows = totalRows - args["size"]
             i += 1
     except pyodbc.Error as ex:
         print(ex)

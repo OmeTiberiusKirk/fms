@@ -33,7 +33,7 @@ def getEnv() -> Env:
 
 def getArgs() -> Args:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--table", type=str, help="ระบุชื่อตาราง")
+    parser.add_argument("-t", "--table", type=str, help="table name")
     parser.add_argument("-o", "--order_by", type=str, help="ตัวเลือกสำหรับจัดระเบียบ")
     parser.add_argument(
         "-s",
@@ -80,13 +80,3 @@ def createCSVDir():
         shutil.rmtree(dir)
     os.makedirs(dir, exist_ok=True)
     return dir
-
-
-def cleanRows(rows: List[Row]):
-    cleaned_rows = []
-    for row in rows:
-        cleaned_row = list(row)
-        if cleaned_row[1] is not None:
-            cleaned_row[1] = cleaned_row[1].replace('\n', '').replace('\r', '')
-        cleaned_rows.append(cleaned_row)
-    return cleaned_rows
