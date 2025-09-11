@@ -20,6 +20,7 @@ class Args(TypedDict):
     number: int
     sep: str
     size: int
+    offset: int
 
 
 def getEnv() -> Env:
@@ -33,17 +34,21 @@ def getEnv() -> Env:
 
 def getArgs() -> Args:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--table", type=str, help="table name")
-    parser.add_argument("-o", "--order_by", type=str, help="ตัวเลือกสำหรับจัดระเบียบ")
+    parser.add_argument("--table", type=str, help="table name")
+    parser.add_argument("--order_by", type=str, help="ตัวเลือกสำหรับจัดระเบียบ")
     parser.add_argument(
-        "-s",
         "--sort",
         type=str,
         help="ตัวเลือกสำหรับเรียง (ค่าเริ่มต้น asc)",
         default="asc",
     )
     parser.add_argument(
-        "-n",
+        "--offset",
+        type=int,
+        help="specifies the number of rows to skip before starting.",
+        default=0,
+    )
+    parser.add_argument(
         "--number",
         type=int,
         default=10000,
@@ -51,7 +56,7 @@ def getArgs() -> Args:
     )
     parser.add_argument("--sep", type=str, default="¦", help="ตัวเลือกสำหรับตัวแบ่งแถว")
     parser.add_argument(
-        "--size", type=int, default=10000, help="ตัวเลือกสำหรับจำนวนแถวต่อหน้า"
+        "--size", type=int, default=1000, help="ตัวเลือกสำหรับจำนวนแถวต่อหน้า"
     )
 
     args = parser.parse_args()
@@ -78,5 +83,5 @@ def createCSVDir():
     dir = "csv"
     if os.path.exists(dir):
         shutil.rmtree(dir)
-    os.makedirs(dir, exist_ok=True)
+    os.makedirs(dir)
     return dir

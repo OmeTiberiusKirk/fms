@@ -1,4 +1,5 @@
 import pyodbc
+import math
 import pandas as pd
 import utils
 
@@ -11,45 +12,55 @@ if __name__ == "__main__":
         cnxn, cursor = utils.connectDB()
 
         query = f"SELECT COUNT(*) FROM {args['table']}"
+
         cursor.execute(query)
-        totalRows = cursor.fetchval()
-        totalRows = totalRows if totalRows <= args["number"] else args["number"]
+        totalNumberOfRows = cursor.fetchval()
+        totalNumberOfRows = min(totalNumberOfRows - args["offset"], args["number"])
 
-        i = 0
-        while totalRows > 0:
-            output_csv_file = f"{args['table']}-{i+1}.csv"
-            # Fetch data from the specified table
-            query = f"""
-              SELECT * FROM {args['table']} 
-              ORDER BY {args['order_by']} {args['sort']}
-              OFFSET {i * args['size']} ROWS
-              FETCH NEXT {args['size'] if args['size'] < totalRows else totalRows} ROWS ONLY
-          	"""
-            cursor.execute(query)
+        if totalNumberOfRows <= 0:
+            raise ValueError("No data.")
 
-            rows = []
-            for row in cursor:
-                # Clean newline characters in Python
-                cleaned_row = [
-                    (
-                        str(item).replace("\n", "").replace("\r", "")
-                        if isinstance(item, str)
-                        else item
-                    )
-                    for item in row
-                ]
-                rows.append(cleaned_row)
+        totalNumberOfPages = math.ceil(totalNumberOfRows / args["size"])
+        print(f"totalNumberOfRows = {totalNumberOfRows}")
+        print(f"totalNumberOfPage = {totalNumberOfPages}")
 
-            # Get column names for the DataFrame
-            columns = [column[0] for column in cursor.description]
-            # Create a Pandas DataFrame
-            df = pd.DataFrame.from_records(rows, columns=columns)
-            # Export DataFrame to CSV
-            df.to_csv(f"{dir}/{output_csv_file}", index=False, sep=args["sep"])
-            print("--------- csv created successfully ---------")
+        for i in range(totalNumberOfPages):
+            size = min(totalNumberOfRows, args["size"])
+            output_csv_file = f"{args['table']}_{i * size + 1}-{size}.csv"
+            # totalNumberOfRows = totalNumberOfRows - size
+            print(output_csv_file)
 
-            totalRows = totalRows - args["size"]
-            i += 1
+            # # Fetch data from the specified table
+            # query = f"""
+            # 	SELECT * FROM {args['table']}
+            # 	ORDER BY {args['order_by']} {args['sort']}
+            # 	OFFSET {i * args['size'] + args['offset']} ROWS
+            # 	FETCH NEXT {args['size'] if args['size'] < totalNumberOfRows else totalNumberOfRows} ROWS ONLY
+            # """
+            # cursor.execute(query)
+
+            # rows = []
+            # for row in cursor:
+            # 	# Clean newline characters in Python
+            # 	cleanedRows = [
+            # 		(
+            # 			str(item).replace("\n", "").replace("\r", "")
+            # 			if isinstance(item, str)
+            # 			else item
+            # 		)
+            # 		for item in row
+            # 	]
+            # 	rows.append(cleanedRows)
+
+            # # Get column names for the DataFrame
+            # columns = [column[0] for column in cursor.description]
+
+            # # Create a Pandas DataFrame
+            # df = pd.DataFrame.from_records(rows, columns=columns)
+
+            # # Export DataFrame to CSV
+            # df.to_csv(f"{dir}/{output_csv_file}", index=False, sep=args["sep"])
+            # print("--------- csv created successfully ---------")
     except pyodbc.Error as ex:
         print(ex)
     except Exception as e:
